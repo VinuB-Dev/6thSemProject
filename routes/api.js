@@ -128,5 +128,19 @@ module.exports = function(client, router) {
         });
     })
 
+    /**
+     * End point to add a patient
+     */
+    router.post('/patient/add', function(req, res) {
+
+    });
+
+    /**
+     * End point to add a medical record
+     */
+    router.post('/medical-record/add', function(req, res) {
+
+    });
+
     return router;
 };
