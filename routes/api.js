@@ -13,6 +13,14 @@ const uploadType = upload.fields([
     {name: 'seg', maxCount: 1},
 ]);
 
+function generateID() {
+    const max = 1000;
+    const min = 0;
+    return Math.floor (
+        Math.random() * (max - min) + min
+    );
+}
+
 module.exports = function(client, router) {
 
     /**
@@ -34,7 +42,7 @@ module.exports = function(client, router) {
         const { id, password }  = req.body;
 
         // getting the user info stored in db using the id
-        client.hgetall(`users:${id}`, function (err, reply) {
+        client.hgetall(`${config.user_prefix}:${id}`, function (err, reply) {
 
             // checking if the reply from the db is empty
             if (! reply) {
@@ -79,7 +87,7 @@ module.exports = function(client, router) {
         // to hash password, takes plain text password and stores hash in hash parameter of the callback.
         bcrypt.hash(password, config.saltRounds, function (err, hash) {
             // adding user entry to database
-            client.hmset(`users:${id}`, [
+            client.hmset(`${config.user_prefix}:${id}`, [
                 'password', hash,
                 'first_name', first_name,
                 'last_name', last_name,
@@ -99,7 +107,7 @@ module.exports = function(client, router) {
                 res.status(200).json({
                     success: true,
                     token: "some-super-secret-token" // TODO: send an actual token
-                })
+                });
             })
         });
     })
@@ -109,7 +117,7 @@ module.exports = function(client, router) {
      */
     router.delete('/user/delete', function(req, res) {
         // creating the key that is used to reference the user in the database
-        const key = `users:${req.query.id}`
+        const key = `${config.user_prefix}:${req.query.id}`
 
         // deleting user
         client.del(key, function(err) {
@@ -124,7 +132,7 @@ module.exports = function(client, router) {
             // else, send success message
             res.status(200).json({
                 success: true
-            })
+            });
         });
     })
 
