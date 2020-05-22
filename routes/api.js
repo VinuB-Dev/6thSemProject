@@ -135,7 +135,7 @@ module.exports = function(client, router) {
             });
         });
     })
-
+    
     /**
      * End point to add a patient
      */
@@ -146,8 +146,30 @@ module.exports = function(client, router) {
     /**
      * End point to add a medical record
      */
-    router.post('/medical-record/add', function(req, res) {
+    router.post("/medical-record/add", function(req, res) {
+        const { id, doctor_id, patient_id, diagnosis, symptoms, treatment} = req.body;
+        // adding record entry to database
+        client.hmset(`${config.record_prefix}:${id}`, [
+            'doctor_id', doctor_id,
+            'patient_id', patient_id,
+            'diagnosis', diagnosis,
+            'symptoms', symptoms,
+            'treatment', treatment
+        ], function (err) {
+            // if error occurred while adding, send error message with
+            // http status code 500 (Internal server error)
+            if (err)
+                res.status(500).json({
+                    success: false,
+                    message: err.toString()
+                });
 
+            // else, send success message.
+            res.status(200).json({
+                success: true,
+                message: "added record successfully" //Display message
+            });
+        })
     });
 
     return router;
