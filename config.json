@@ -2,5 +2,7 @@
 	"model_server": "http://60f3ba37.ngrok.io",
 	"saltRounds": 10,
 	"user_prefix": "users",
-	"record_prefix": "records"
+	"record_prefix": "records",
+	"storage": "./uploads",
+	"default_secret": "some_super_secret_hard_token"
 }
