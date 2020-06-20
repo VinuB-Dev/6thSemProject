@@ -166,8 +166,6 @@ module.exports = function (client, router) {
      * End point to receive MRI scans.
      */
     router.post('/upload', uploadType, function (req, res) {
-
-
         // redirecting request to model server
         return res.redirect(307, `${config.model_server}/api/upload`);
     });
