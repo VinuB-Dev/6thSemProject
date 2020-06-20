@@ -3,6 +3,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const redis = require("redis");
+const cors = require('cors');
 const apiRouter = require('./routes/api');
 
 // creating db object and connecting to redis
@@ -22,6 +23,7 @@ const router = express.Router();
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cors())
 // noinspection JSCheckFunctionSignatures
 app.use(cookieParser());
 

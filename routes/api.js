@@ -13,17 +13,17 @@ const secret = process.env.SECRET || config.default_secret
 // of files that can be uploaded etc.) of the files that can be uploaded.
 const upload = multer({
     storage: multer.diskStorage({
-        destination: function(req, file, cb) {
+        destination: function (req, file, cb) {
             // constructing path to folder
             const folder = path.join(config.storage, req.body["patient_id"]);
 
             // creating folder
-            fs.mkdirSync(folder, { recursive: true });
+            fs.mkdirSync(folder, {recursive: true});
 
             // calling callback
             cb(null, folder);
         },
-        filename: function(req, file, cb) {
+        filename: function (req, file, cb) {
             cb(null, file.originalname);
         }
     })
@@ -38,27 +38,27 @@ const uploadType = upload.fields([
 
 const generateID = () => crypto.randomBytes(3).toString("hex");
 const createToken = ({email, id}) => jwt.sign({
-     email: email,
+    email: email,
     _id: id
 }, secret, {
     expiresIn: "24h"
 })
 
-module.exports = function(client, router) {
+module.exports = function (client, router) {
 
     /**
      * End point that is used to login. On a successful login, returns
      * a token.
      */
-    router.post('/login', function(req, res) {
+    router.post('/login', function (req, res) {
         // getting id and password from the request's body
-        const { id, password }  = req.body;
+        const {id, password} = req.body;
 
         // getting the user info stored in db using the id
         client.hgetall(`${config.user_prefix}:${id}`, function (err, reply) {
 
             // checking if the reply from the db is empty
-            if (! reply) {
+            if (!reply) {
                 res.status(404).json({
                     success: false,
                     message: "User not found."
@@ -71,20 +71,20 @@ module.exports = function(client, router) {
                 bcrypt.compare(password, hash, function (err, result) {
 
                     // if they match, return token
-                    if (result === true) {
+                    if (result === true)
                         // sending response
-                        res.status(200).json({
+                        return res.status(200).json({
                             success: true,
                             token: createToken({email: reply.email, id: id})
                         });
-                    } else {
 
-                        // return error message with http status code 401 (Invalid credentials)
-                        res.status(401).json({
-                            success: false,
-                            message: "Invalid password."
-                        });
-                    }
+
+                    // return error message with http status code 401 (Invalid credentials)
+                    return res.status(401).json({
+                        success: false,
+                        message: "Invalid password."
+                    });
+
                 });
             }
         });
@@ -94,9 +94,9 @@ module.exports = function(client, router) {
      * End point that is used to register. On a successful login, returns
      * a token.
      */
-    router.post("/register", function(req, res) {
+    router.post("/register", function (req, res) {
         // getting required information from the request's body
-        const { id, password, first_name, last_name, department, email, phone } = req.body;
+        const {id, password, first_name, last_name, department, email, phone} = req.body;
 
         // to hash password, takes plain text password and stores hash in hash parameter of the callback.
         bcrypt.hash(password, config.saltRounds, function (err, hash) {
@@ -112,34 +112,34 @@ module.exports = function(client, router) {
                 // if error occurred while adding, send error message with
                 // http status code 500 (Internal server error)
                 if (err)
-                    res.status(500).json({
+                    return res.status(500).json({
                         success: false,
                         message: err.toString()
                     });
 
                 // else, send token.
-                res.status(200).json({
+                return res.status(200).json({
                     success: true,
                     token: createToken({email: email, id: id})
                 });
             })
         });
-    })
+    });
 
     /**
      * Middleware to check validity of token
      */
-    router.use(function(req, res, next) {
+    router.use(function (req, res, next) {
         // getting token from the request body, parameter or header
         const token = req.body.token || req.query.token || req.headers['x-access-token'];
 
         if (token) {
             // verifying token
-            jwt.verify(token, secret, function(err, decoded) {
+            jwt.verify(token, secret, function (err, decoded) {
                 if (err) {
                     // The token has expired or is invalid
                     // noinspection JSUnresolvedFunction
-                    res.status(401).json({
+                    return res.status(401).json({
                         success: false,
                         message: "Invalid token."
                     })
@@ -151,114 +151,115 @@ module.exports = function(client, router) {
                 // calling the next route
                 next();
             })
-        }
-        else {
+        } else {
+            console.log("no token provided");
             // no token provided
             // noinspection JSUnresolvedFunction
-            res.status(401).json({
+            return res.status(401).json({
                 success: false,
                 message: "No token provided"
             })
         }
-    })
+    });
 
     /**
      * End point to receive MRI scans.
      */
     router.post('/upload', uploadType, function (req, res) {
 
-        // generating id for the medical record
-        const id = generateID();
-
-        // adding path to patient key in db
-        client.hmset(`${config.record_prefix}:${id}`, [
-            'mri_scans', path.join(config.storage, req.body['patient_id']).toString()
-        ], function(err) {
-            // if error occurred while adding, send error message with
-            // http status code 500 (Internal server error)
-            if (err)
-                res.status(500).json({
-                    success: false,
-                    message: err.toString()
-                });
-
-            // else, send record id.
-            res.status(200).json({
-                success: true,
-                record_id: id
-            });
-        });
 
         // redirecting request to model server
-        res.redirect(307, `${config.model_server}/api/upload`);
+        return res.redirect(307, `${config.model_server}/api/upload`);
     });
 
     /**
      * End point that is used to delete a user.
      */
-    router.delete('/user/delete', function(req, res) {
+    router.delete('/user/delete', function (req, res) {
         // getting the token contents from request
-        const { token_contents } = req;
+        const {token_contents} = req;
 
         // creating the key that is used to reference the user in the database
         const key = `${config.user_prefix}:${token_contents["_id"]}`
 
         // deleting user
-        client.del(key, function(err) {
+        client.del(key, function (err) {
             // if error occurred while deleting, send error message with
             // http status code 500 (Internal server error)
             if (err)
-                res.status(500).json({
+                return res.status(500).json({
                     success: false,
                     message: err.toString()
                 });
 
-            // else, send success message
-            res.status(200).json({
-                success: true
-            });
+            else
+                // else, send success message
+                return res.status(200).json({
+                    success: true
+                });
         });
-    })
-    
+    });
+
     /**
      * End point to add a patient
      */
-    router.post('/patient/add', function(req, res) {
-        const { name, gender, dob, contact } = req.body;
-        const id = generateID();
-        const key = `patients:${id}`;
+    router.post('/patient/add', function (req, res) {
+        const {name, gender, dob, contact} = req.body;
+        const {token_contents} = req
+        const doctor_id = req.body["doctor_id"] || token_contents["_id"];
+        const patient_id = generateID();
+        const patient_key = `${config.patient_prefix}:${patient_id}`;
+        const record_id = generateID(); // generating id for the medical record
+        const record_key = `${config.record_prefix}:${record_id}`
 
-        client.hmset(key, [
-            'name', name,
-            'gender', gender,
-            'dob', dob,
-            'contact', contact
-        ], function(err) {
-            // if error occurred while adding, send error message with
-            // http status code 500 (Internal server error)
-            if (err)
-                res.status(500).json({
-                    success: false,
-                    message: err.toString()
-                });
+        let multi = client.multi()
 
-            // else, send patient id.
-            res.status(200).json({
-                success: true,
-                patient_id: id
+        // creating patient entry
+        multi.hmset(
+            patient_key, [
+                'id', patient_id,
+                'name', name,
+                'gender', gender,
+                'dob', dob,
+                'contact', contact
+            ]
+        )
+            // adding patient to list of patients of the doctor
+            .lpush(`${config.patients_of_doctor_prefix}:${doctor_id}`, patient_id)
+
+            // creating record entry and adding MRI scan path
+            .hmset(record_key, [
+                'mri_scans', path.join(config.storage, patient_id).toString()
+            ])
+
+            // adding record to the list of records of the patient
+            .lpush(`${config.records_of_patient_prefix}:${patient_id}`, record_id)
+            .exec(function (err) {
+                if (err) {
+                    console.log(err);
+                    return res.status(500).json({
+                        success: false,
+                        message: err.toString()
+                    });
+                }
+
+                return res.status(200).json({
+                    success: true,
+                    patient_id: patient_id,
+                    record_id: record_id
+                })
             });
-        });
     });
 
     /**
      * End point to update a medical record
      */
-    router.post("/medical-record/update", function(req, res) {
+    router.post("/medical-record/update", function (req, res) {
         // getting info from body
-        const { record_id, patient_id, diagnosis, symptoms, treatment } = req.body;
+        const {record_id, patient_id, diagnosis, symptoms, treatment} = req.body;
 
         // getting contents of token from request
-        const { token_contents } = req;
+        const {token_contents} = req;
 
         // getting doctor id (user id) from token
         const doctor_id = token_contents["_id"]
@@ -274,17 +275,59 @@ module.exports = function(client, router) {
             // if error occurred while adding, send error message with
             // http status code 500 (Internal server error)
             if (err)
-                res.status(500).json({
+                return res.status(500).json({
                     success: false,
                     message: err.toString()
                 });
 
             // else, send success message.
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 message: "added record successfully" //Display message
             });
         })
+    });
+
+    router.get("/doctor/patients", function (req, res) {
+        const {token_contents} = req;
+        const doctor_id = req.body["doctor_id"] || token_contents["_id"];
+
+        // getting list of patient ids under doctor
+        client.lrange(`${config.patients_of_doctor_prefix}:${doctor_id}`, 0, -1,
+            function (err, reply) {
+                if (err)
+                    return res.status(500).json({
+                        success: false,
+                        message: err.toString()
+                    });
+
+                // getting info of each patient under doctor
+                let multi = client.multi();
+                reply.forEach((value) => multi = multi.hgetall(`${config.patient_prefix}:${value}`));
+                multi.exec(function (err, reply) {
+                    if (err)
+                        return res.status(500).json({
+                            success: false,
+                            message: err.toString()
+                        });
+
+                    let data = []
+                    let remaining = reply.length;
+                    reply.forEach((patient) => {
+                        client.lrange(`${config.records_of_patient_prefix}:${patient.id}`, 0, -1,
+                            function (err, reply) {
+                                patient.records = reply;
+                                data.push(patient);
+                                remaining--;
+
+                                if (remaining === 0) {
+                                    res.status(200).json(data);
+                                }
+                            });
+                    });
+                });
+            }
+        );
     });
 
     return router;
