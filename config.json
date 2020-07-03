@@ -1,5 +1,5 @@
 {
-	"model_server": "http://0b7dd80745f8.ngrok.io",
+	"model_server": "http://9de29124fef0.ngrok.io",
 	"saltRounds": 10,
 	"user_prefix": "users",
 	"record_prefix": "records",
